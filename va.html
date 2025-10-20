@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Valorant Map Ban/Pick</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: #0a0e27;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 32px;
+        }
+        
+        .map-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+        
+        .map-btn {
+            padding: 0;
+            border: 3px solid #666;
+            border-radius: 8px;
+            cursor: pointer;
+            overflow: hidden;
+            transition: all 0.2s;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            height: 120px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            color: #fff;
+        }
+        
+        .map-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+        }
+        
+        .map-name {
+            position: relative;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-bottom: 4px;
+        }
+        
+        .map-btn:disabled {
+            cursor: default;
+        }
+        
+        .map-btn.banned {
+            border-color: #c41e3a;
+            opacity: 0.5;
+            background: #8b0000;
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .map-btn.picked {
+            border-color: #00d98e;
+            background: #004d26;
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .map-btn.decider {
+            border-color: #00d98e;
+            background: #004d26;
+            background-size: cover;
+            background-position: center;
+        }
+        
+        .status-badge {
+            position: absolute;
+            font-size: 48px;
+            font-weight: bold;
+        }
+        
+        .banned .status-badge {
+            color: #ff6b6b;
+            bottom: 30px;
+        }
+        
+        .picked .status-badge {
+            color: #51cf66;
+            bottom: 30px;
+        }
+        
+        .decider .status-badge {
+            color: #51cf66;
+            bottom: 30px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.8);
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background-color: #1c1c1c;
+            border-radius: 16px;
+            padding: 30px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        .modal-preview {
+            width: 100%;
+            height: 150px;
+            background-color: #1a3a6b;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-weight: bold;
+            font-size: 24px;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+        }
+        
+        .modal-preview::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+        }
+        
+        .modal-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+        
+        .modal-desc {
+            color: #aaa;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border-radius: 6px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .btn-cancel {
+            background-color: #555;
+            color: #fff;
+        }
+        
+        .btn-confirm {
+            background-color: #c9a961;
+            color: #000;
+        }
+        
+        .result-container {
+            background-color: #000;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-bottom: 30px;
+        }
+        
+        .result-grid {
+            display: flex;
+            gap: 50px;
+            text-align: center;
+        }
+        
+        .result-card {
+            min-width: 120px;
+            background-color: #1c1c1c;
+            border: 1px solid #555;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .result-header {
+            background-color: #111;
+            padding: 8px;
+            font-size: 11px;
+            font-weight: bold;
+            border-bottom: 1px solid #555;
+        }
+        
+        .result-body {
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            background-size: cover;
+            background-position: center;
+            color: #fff;
+            position: relative;
+        }
+        
+        .result-body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+        }
+        
+        .result-map-name {
+            position: relative;
+            z-index: 10;
+        }
+        
+        .result-footer {
+            background-color: #c9a961;
+            color: #000;
+            padding: 6px;
+            font-size: 9px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .status-info {
+            text-align: center;
+        }
+        
+        .status-text {
+            color: #aaa;
+            margin-bottom: 15px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .btn-reset {
+            background-color: #555;
+            color: #fff;
+            padding: 10px 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Valorant Map Ban/Pick</h1>
+        
+        <div class="map-grid" id="mapGrid"></div>
+        
+        <div class="modal" id="modal">
+            <div class="modal-content">
+                <div class="modal-preview" id="modalPreview"></div>
+                <h2 class="modal-title" id="modalTitle"></h2>
+                <p class="modal-desc" id="modalDesc"></p>
+                <div class="button-group">
+                    <button class="btn-cancel" onclick="closeModal()">취소</button>
+                    <button class="btn-confirm" onclick="confirmSelection()">확인</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="result-container">
+            <div class="result-grid" id="resultGrid"></div>
+        </div>
+        
+        <div class="status-info">
+            <div class="status-text" id="statusText"></div>
+            <button class="btn-reset" onclick="resetAll()">초기화</button>
+        </div>
+    </div>
+
+    <script>
+        const MAPS = [
+            { id: 'abyss', name: 'abyss', image: 'images/abyss.jpg' },
+            { id: 'bind', name: 'bind', image: 'images/bind.jpg' },
+            { id: 'corrode', name: 'corrode', image: 'images/corrode.jpg' },
+            { id: 'haven', name: 'haven', image: 'images/haven.jpg' },
+            { id: 'pearl', name: 'pearl', image: 'images/pearl.jpg' },
+            { id: 'split', name: 'split', image: 'images/split.jpg' },
+            { id: 'sunset', name: 'sunset', image: 'images/sunset.jpg' },
+        ];
+
+        const TURN_META = [
+            { turn: 1, team: '호잇짜', action: 'BAN' },
+            { turn: 2, team: '스몰데이터', action: 'BAN' },
+            { turn: 3, team: '호잇짜', action: 'PICK' },
+            { turn: 4, team: '스몰데이터', action: 'PICK' },
+            { turn: 5, team: '호잇짜', action: 'BAN' },
+            { turn: 6, team: '스몰데이터', action: 'BAN' },
+            { turn: 7, team: 'Decider', action: 'DECIDER' },
+        ];
+
+        let state = {
+            turnIndex: 0,
+            selectedMap: null,
+            results: [],
+            mapState: {}
+        };
+
+        // 초기 상태 설정
+        MAPS.forEach(m => {
+            state.mapState[m.id] = { status: 'available' };
+        });
+
+        function renderMaps() {
+            const grid = document.getElementById('mapGrid');
+            grid.innerHTML = '';
+            
+            MAPS.forEach(m => {
+                const btn = document.createElement('button');
+                btn.className = `map-btn ${state.mapState[m.id].status}`;
+                btn.disabled = state.mapState[m.id].status !== 'available';
+                btn.style.backgroundImage = `url('${m.image}')`;
+                
+                let badgeHtml = '';
+                if (state.mapState[m.id].status === 'banned') {
+                    badgeHtml = '<div class="status-badge">✕</div>';
+                } else if (state.mapState[m.id].status === 'picked') {
+                    badgeHtml = '<div class="status-badge">✓</div>';
+                } else if (state.mapState[m.id].status === 'decider') {
+                    badgeHtml = '<div class="status-badge">✓</div>';
+                }
+                
+                btn.innerHTML = `<div class="map-name">${m.name}</div>${badgeHtml}`;
+                btn.onclick = () => openModal(m);
+                grid.appendChild(btn);
+            });
+        }
+
+        function renderResults() {
+            const grid = document.getElementById('resultGrid');
+            grid.innerHTML = '';
+            
+            TURN_META.forEach(turn => {
+                const result = state.results.find(r => r.turn === turn.turn);
+                const map = result ? MAPS.find(m => m.id === result.mapId) : null;
+                const status = result ? state.mapState[result.mapId].status : null;
+                
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                
+                const bodyStyle = map ? `style="background-image: url('${map.image}')"` : '';
+                let badge = '';
+                if (status === 'banned') {
+                    badge = '<div class="status-badge" style="color: #ff6b6b;">✕</div>';
+                } else if (status === 'picked') {
+                    badge = '<div class="status-badge" style="color: #51cf66;">✓</div>';
+                } else if (status === 'decider') {
+                    badge = '<div class="status-badge" style="color: #51cf66;">✓</div>';
+                }
+                
+                const mapName = map ? `<span class="result-map-name">${map.name}</span>` : '<span class="result-map-name">대기 중...</span>';
+                
+                card.innerHTML = `
+                    <div class="result-header">
+                        <div>${turn.team}</div>
+                        <div>${turn.action === 'BAN' ? 'BAN' : turn.action === 'PICK' ? 'SELECT' : 'DECIDER'}</div>
+                    </div>
+                    <div class="result-body" ${bodyStyle}>
+                        ${mapName}
+                        ${badge}
+                    </div>
+                    <div class="result-footer">
+                        ${turn.action === 'BAN' ? 'BAN' : turn.action === 'PICK' && turn.team === '호잇짜' ? '스몰데이터 ATTACK' : turn.action === 'PICK' && turn.team === '스몰데이터' ? '호잇짜 ATTACK' : '스몰데이터 ATTACK  '}
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+        }
+
+        function updateStatus() {
+            const turn = TURN_META[state.turnIndex];
+            const text = turn 
+                ? `현재 턴: ${turn.team} - ${turn.action}`
+                : '모든 밴픽 완료';
+            document.getElementById('statusText').textContent = text;
+        }
+
+        function openModal(map) {
+            if (state.mapState[map.id].status !== 'available') return;
+            
+            state.selectedMap = map;
+            const turn = TURN_META[state.turnIndex];
+            
+            const preview = document.getElementById('modalPreview');
+            preview.style.backgroundImage = `url('${map.image}')`;
+            preview.innerHTML = '<div style="position: relative; z-index: 10;"></div>';
+            
+            document.getElementById('modalTitle').textContent = map.name;
+            document.getElementById('modalDesc').textContent = turn
+                ? `${turn.team} - ${turn.action}`
+                : '모든 밴픽 완료';
+            
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function closeModal() {
+            state.selectedMap = null;
+            document.getElementById('modal').classList.remove('active');
+        }
+
+        function confirmSelection() {
+            if (!state.selectedMap) return;
+            const turn = TURN_META[state.turnIndex];
+            if (!turn) return;
+            
+            const mapId = state.selectedMap.id;
+            const action = turn.action;
+            
+            state.mapState[mapId].status = 
+                action === 'BAN' ? 'banned' :
+                action === 'DECIDER' ? 'decider' : 'picked';
+            
+            state.results.push({
+                turn: turn.turn,
+                team: turn.team,
+                action: turn.action,
+                mapId: mapId
+            });
+            
+            state.turnIndex = Math.min(state.turnIndex + 1, TURN_META.length);
+            state.selectedMap = null;
+            
+            closeModal();
+            renderMaps();
+            renderResults();
+            updateStatus();
+        }
+
+        function resetAll() {
+            state.turnIndex = 0;
+            state.selectedMap = null;
+            state.results = [];
+            MAPS.forEach(m => {
+                state.mapState[m.id].status = 'available';
+            });
+            renderMaps();
+            renderResults();
+            updateStatus();
+        }
+
+        // 초기 렌더링
+        renderMaps();
+        renderResults();
+        updateStatus();
+    </script>
+</body>
+</html>
